@@ -15,17 +15,3 @@ CommonUtils.save_json_excel(previous_leagues,f"{data_saves_in}/Datas/previous_le
 # team informatoin
 teams = scraper.getTeamInformation()
 CommonUtils.save_json_excel(teams,f"{data_saves_in}/Datas/team_information")
-
-# previous_leagues = dict()
-# with open(f"{data_saves_in}/Datas/team_information.json","r") as j:
-#     league_history = json.load(j)
-#
-# for k,v in league_history.items():
-#     print(k)
-#     print(len(v))
-#
-# k1,k2 = ["연도","리그"]
-# filter_duplication = sorted(set(list(zip(league_history[k1],league_history[k2]))),key=lambda x:x[0])
-# print(filter_duplication)
-# previous_leagues[k1] = list(map(lambda x:x[0],filter_duplication))
-# previous_leagues[k2] = list(map(lambda x:x[1],filter_duplication))
