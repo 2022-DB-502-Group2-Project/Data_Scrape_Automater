@@ -1,0 +1,2 @@
+class constant(object):
+    pass

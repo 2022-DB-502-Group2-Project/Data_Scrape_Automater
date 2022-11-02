@@ -1,0 +1,11 @@
+# Pycache
+__pycache__/
+
+# OS
+DS_Store/
+
+# IDEA
+.idea
+
+# Datas
+/Datas
