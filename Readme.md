@@ -1,9 +1,9 @@
 Data auto scraper 
 ===
 ***
-Maintainer : 윤준호(Hoplin)
-First generated : 2022 / 11 / 02
-Language : Python 3
+- Maintainer : 윤준호(Hoplin)
+- First generated : 2022 / 11 / 02
+- Language : Python 3
 ***
 
 How to use
