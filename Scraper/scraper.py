@@ -15,24 +15,26 @@ class Scraper(object):
 
     # Essential URLs for parsing
     __baseURL = "https://www.kleague.com/player.do"
-    __stadiumByTeam = "https://namu.wiki/w/%ED%8B%80:K%EB%A6%AC%EA%B7%B81/%EA%B2%BD%EA%B8%B0%EC%9E%A5"
     __teamInfo = "https://www.kleague.com/record/team.do"
 
     # Kleague type
     __leagueId = {
         'kleague1' : {
             "leagueId" : 1,
+            "stadiuminfo" : "https://namu.wiki/w/%ED%8B%80:K%EB%A6%AC%EA%B7%B81/%EA%B2%BD%EA%B8%B0%EC%9E%A5",
             "paginationCount" : None
         },
         'kleague2' : {
             "leagueId" : 2,
+            "stadiuminfo" : "https://namu.wiki/w/%ED%8B%80:K%EB%A6%AC%EA%B7%B82/%EA%B2%BD%EA%B8%B0%EC%9E%A5",
             "paginationCount" : None
         }
     }
 
     def __init__(self):
         #Selenium driver
-        self.driver = webdriver.Chrome(f"{os.path.dirname(os.path.realpath(__file__))}/chromedriver")
+        self.driver = None
+        self.loadDriver()
         # Set explicit wait
         self.explicitwait = WebDriverWait(self.driver,30)
         # Wait 3 second for driver load
@@ -40,6 +42,9 @@ class Scraper(object):
         # Get last number of pagination
         self.__initPaginationPerGroup()
         print("Initialization Finished")
+
+    def loadDriver(self):
+        self.driver = webdriver.Chrome(f"{os.path.dirname(os.path.realpath(__file__))}/chromedriver")
 
     def closeDriver(self):
         self.driver.close()
@@ -80,6 +85,62 @@ class Scraper(object):
             # If limit were given and lower or equal than last pagination count
             Scraper.__leagueId[i]["paginationCount"] = int(getlast.text)
 
+    # This method requires dependencies
+    # Set access control as private
+    @ParameterValidator(list,isTypeMethod=True)
+    def __getTeamStadiumInformation(self,teamlist):
+        # Stadiums dictionary
+        stadiums = dict()
+        # Return dictionary
+        capsule = {
+            "클럽" : [],
+            "경기장" : []
+        }
+        for _,v in Scraper.__leagueId.items():
+            self.driver.get(v["stadiuminfo"])
+            btn = self.driver.find_element(By.CLASS_NAME,'HhUtJxMC').find_element(By.TAG_NAME,'dt')
+            self.driver.execute_script("arguments[0].click()",btn)
+            html = CommonUtils.getBS4Elements(self.driver.page_source)
+            # Get <tr> list except last <tr> which refers to btns
+            tablerows = html.find('table',{'class' : 'aU6rwV0w'}).findAll('table',{'class' : 'aU6rwV0w'})[1].findAll('tr')[:-1]
+            # Make a loop of each row
+            for i in tablerows:
+                '''
+                index [0] : Club icon
+                index [1] : Club region name
+                '''
+                try:
+                    for j in i.findAll('td'):
+                        infolist = j.findAll('a')
+                        clubname = infolist[1].text
+                        stadiumName = infolist[2].text
+                        clubname = list(filter(lambda x:x.startswith(clubname), teamlist))[0]
+                        if clubname not in list(stadiums.keys()):
+                            stadiums[clubname] = [stadiumName]
+                        else:
+                            stadiums[clubname].append(stadiumName)
+                # Index Error occurence if table is empty example of kleague2
+                except IndexError:
+                    pass
+            self.closeDriver()
+            # prevent hCaptcha
+            self.loadDriver()
+        self.closeDriver()
+        # Stadium list from wiki has more elements than teams from kleague site
+        # Make stadium database in standard of teams from kleague site
+        for i in teamlist:
+            # Only get region name
+            region = i[:2]
+            find_key = list(filter(lambda x:x.startswith(region),stadiums.keys()))
+            if not find_key:
+                capsule['클럽'].append(i)
+                capsule['경기장'].append("Stadium Unknown")
+                continue
+            capsule['클럽'].append(i)
+            capsule['경기장'].append(stadiums[find_key[0]][0])
+            del stadiums[find_key[0]][0]
+        return capsule
+
     @ParameterValidator(isTypeMethod=True)
     def getTeamInformation(self):
         # Get in page
@@ -88,6 +149,11 @@ class Scraper(object):
         teamlists = self.driver.find_element(By.CLASS_NAME,'stadium-btn').find_element(By.CLASS_NAME,'home')
         self.driver.execute_script("arguments[0].click()",teamlists)
 
+        '''
+        ///////////////////////////////////
+        Build Database : team information
+        ///////////////////////////////////
+        '''
         html = CommonUtils.getBS4Elements(self.driver.page_source)
         columns = list(map(lambda x:x.text,html.find('div',{'id' : 'rank-div'}).find('table').find('thead').findAll('th')))
         columns.extend(["리그","image"])
@@ -95,23 +161,28 @@ class Scraper(object):
         teams = { i : [] for i in columns }
         # Image base URL
         img_base = "https://www.kleague.com"
-
         league_lists_length = len(self.driver.find_element(By.ID,'leagueId').find_elements(By.TAG_NAME,'option'))
         # Initiate Dictionary Key
-        print(league_lists_length)
         for i in range(league_lists_length):
             self.driver.find_element(By.ID, 'leagueId').find_elements(By.TAG_NAME, 'option')[i].click()
-            # Get html
-            html = CommonUtils.getBS4Elements(self.driver.page_source)
-            rows = html.find("div",{"id":"rank-div"}).find('table').find('tbody').findAll('tr')
+            # Wait for load
+            time.sleep(1)
+            # Get html of webelement
+            html = CommonUtils.getBS4Elements(self.driver.find_element(By.ID,"rank-div").find_element(By.TAG_NAME,'table').find_element(By.TAG_NAME,'tbody').get_attribute('innerHTML'))
+            rows = html.findAll('tr')
             for r in rows:
                 imgurl = f"{img_base}{r.find('img').attrs['src']}"
-                datas = list(map(lambda x:x.text,r.findAll("td")))
+                datas = list(map(lambda x:x.text.strip(),r.findAll("td")))
                 datas.extend([list(Scraper.__leagueId.keys())[i],imgurl])
                 for k,v in zip(columns,datas):
                     teams[k].append(v)
-        self.driver.close()
-        return teams
+        '''
+        /////////////////////////////////////////
+        Build Database : team stadium information
+        /////////////////////////////////////////
+        '''
+        stadiums = self.__getTeamStadiumInformation(teams['클럽'])
+        return [teams,stadiums]
 
     @ParameterValidator(int,isTypeMethod=True)
     def getPlayerInformation(self,pagination_count=None):
@@ -245,7 +316,3 @@ class Scraper(object):
         # Close driver after processing
         self.closeDriver()
         return [players,league_history,previous_leagues]
-
-if __name__ == "__main__":
-    s = Scraper()
-    s.getTeamInformation()
