@@ -34,17 +34,16 @@ class Scraper(object):
     def __init__(self):
         #Selenium driver
         self.driver = None
-        self.loadDriver()
         # Set explicit wait
         self.explicitwait = WebDriverWait(self.driver,30)
-        # Wait 3 second for driver load
-        self.driver.implicitly_wait(3)
         # Get last number of pagination
         self.__initPaginationPerGroup()
         print("Initialization Finished")
 
     def loadDriver(self):
         self.driver = webdriver.Chrome(f"{os.path.dirname(os.path.realpath(__file__))}/chromedriver")
+        # Wait 3 second for driver load
+        self.driver.implicitly_wait(3)
 
     def closeDriver(self):
         self.driver.close()
@@ -64,6 +63,7 @@ class Scraper(object):
     # Initialize : get pagination number per each league
     @ParameterValidator(isTypeMethod=True)
     def __initPaginationPerGroup(self):
+        self.loadDriver()
         for i,v in Scraper.__leagueId.items():
             querystring  = urlencode(self.getQueryStringParamOnBasis(
                 leagueId=v["leagueId"]
@@ -84,11 +84,13 @@ class Scraper(object):
             getlast = paginationBar.find_elements(By.CLASS_NAME,"num")[-1]
             # If limit were given and lower or equal than last pagination count
             Scraper.__leagueId[i]["paginationCount"] = int(getlast.text)
+        self.closeDriver()
 
     # This method requires dependencies
     # Set access control as private
     @ParameterValidator(list,isTypeMethod=True)
     def __getTeamStadiumInformation(self,teamlist):
+        self.loadDriver()
         # Stadiums dictionary
         stadiums = dict()
         # Return dictionary
@@ -98,13 +100,18 @@ class Scraper(object):
         }
         for _,v in Scraper.__leagueId.items():
             self.driver.get(v["stadiuminfo"])
-            btn = self.driver.find_element(By.CLASS_NAME,'HhUtJxMC').find_element(By.TAG_NAME,'dt')
+            btn = self.driver\
+                .find_element(By.XPATH,'/html/body/div/div/div[2]/div/div/div/div/div/div[1]/div[6]/div/div/div/div/div[2]/div/div/div/div[16]/div/div/div/div/div/div[1]/div/div[1]/table/tbody/tr[2]/td/div/div/dl').find_element(By.TAG_NAME,'dt')
             self.driver.execute_script("arguments[0].click()",btn)
             html = CommonUtils.getBS4Elements(self.driver.page_source)
             # Get <tr> list except last <tr> which refers to btns
-            tablerows = html.find('table',{'class' : 'aU6rwV0w'}).findAll('table',{'class' : 'aU6rwV0w'})[1].findAll('tr')[:-1]
+            tablerows = self.driver\
+                .find_element(By.XPATH,'/html/body/div/div/div[2]/div/div/div/div/div/div[1]/div[6]/div/div/div/div/div[2]/div/div/div/div[16]/div/div/div/div/div/div[1]/div/div[1]/table/tbody/tr[2]/td/div/div/dl/dd/div/span/div/table/tbody')\
+                .find_elements(By.TAG_NAME,'tr')
+                #html.find('table',{'class' : 'aU6rwV0w'}).findAll('table',{'class' : 'aU6rwV0w'})[1].findAll('tr')[:-1]
             # Make a loop of each row
             for i in tablerows:
+                i = CommonUtils.getBS4Elements(i.get_attribute('innerHTML'))
                 '''
                 index [0] : Club icon
                 index [1] : Club region name
@@ -143,6 +150,7 @@ class Scraper(object):
 
     @ParameterValidator(isTypeMethod=True)
     def getTeamInformation(self):
+        self.loadDriver()
         # Get in page
         self.driver.get(Scraper.__teamInfo)
         # Find btn layout
@@ -176,6 +184,7 @@ class Scraper(object):
                 datas.extend([list(Scraper.__leagueId.keys())[i],imgurl])
                 for k,v in zip(columns,datas):
                     teams[k].append(v)
+        self.closeDriver()
         '''
         /////////////////////////////////////////
         Build Database : team stadium information
@@ -186,6 +195,7 @@ class Scraper(object):
 
     @ParameterValidator(int,isTypeMethod=True)
     def getPlayerInformation(self,pagination_count=None):
+        self.loadDriver()
         league_key = "league_type"
         player_image_key = "player_image"
         # Save player's information
