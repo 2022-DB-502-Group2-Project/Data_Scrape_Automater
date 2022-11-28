@@ -5,14 +5,14 @@ Data auto scraper
 - First generated : 2022 / 11 / 02
 - Language : Python 3
 ***
-Version States
+## Version States
 
 - 2022 / 11 / 28 : Stadium information scraping is now deprecated
   - Having trouble while scraping via random html tag id.
   - After changing method to `XPATH` selection, it also makes some trouble(XPATH changes randomly)
   - And we only need single time execution, and determine that it's waste of time integrate this method
 ***
-How to use
+## How to use
 
 1. Clone project
 
