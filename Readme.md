@@ -5,7 +5,13 @@ Data auto scraper
 - First generated : 2022 / 11 / 02
 - Language : Python 3
 ***
+Version States
 
+- 2022 / 11 / 28 : Stadium information scraping is now deprecated
+  - Having trouble while scraping via random html tag id.
+  - After changing method to `XPATH` selection, it also makes some trouble(XPATH changes randomly)
+  - And we only need single time execution, and determine that it's waste of time integrate this method
+***
 How to use
 
 1. Clone project
@@ -36,7 +42,6 @@ CommonUtils.save_json_excel(player,f"{data_saves_in}/Datas/kleague_player_inform
 CommonUtils.save_json_excel(player_league_history,f"{data_saves_in}/Datas/kleague_player_league_history")
 CommonUtils.save_json_excel(previous_leagues,f"{data_saves_in}/Datas/previous_league_history")
 # team informatoin
-teams,stadium = scraper.getTeamInformation()
+teams = scraper.getTeamInformation()
 CommonUtils.save_json_excel(teams,f"{data_saves_in}/Datas/team_information")
-CommonUtils.save_json_excel(stadium, f"{os.getcwd()}/../Datas/stadium_information")
 ```
