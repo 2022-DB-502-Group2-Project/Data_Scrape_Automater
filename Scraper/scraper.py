@@ -86,68 +86,6 @@ class Scraper(object):
             Scraper.__leagueId[i]["paginationCount"] = int(getlast.text)
         self.closeDriver()
 
-    # This method requires dependencies
-    # Set access control as private
-    @ParameterValidator(list,isTypeMethod=True)
-    def __getTeamStadiumInformation(self,teamlist):
-        self.loadDriver()
-        # Stadiums dictionary
-        stadiums = dict()
-        # Return dictionary
-        capsule = {
-            "클럽" : [],
-            "경기장" : []
-        }
-        for _,v in Scraper.__leagueId.items():
-            self.driver.get(v["stadiuminfo"])
-            btn = self.driver\
-                .find_element(By.XPATH,'/html/body/div/div/div[2]/div/div/div/div/div/div[1]/div[6]/div/div/div/div/div[2]/div/div/div/div[16]/div/div/div/div/div/div[1]/div/div[1]/table/tbody/tr[2]/td/div/div/dl').find_element(By.TAG_NAME,'dt')
-            self.driver.execute_script("arguments[0].click()",btn)
-            html = CommonUtils.getBS4Elements(self.driver.page_source)
-            # Get <tr> list except last <tr> which refers to btns
-            tablerows = self.driver\
-                .find_element(By.XPATH,'/html/body/div/div/div[2]/div/div/div/div/div/div[1]/div[6]/div/div/div/div/div[2]/div/div/div/div[16]/div/div/div/div/div/div[1]/div/div[1]/table/tbody/tr[2]/td/div/div/dl/dd/div/span/div/table/tbody')\
-                .find_elements(By.TAG_NAME,'tr')
-                #html.find('table',{'class' : 'aU6rwV0w'}).findAll('table',{'class' : 'aU6rwV0w'})[1].findAll('tr')[:-1]
-            # Make a loop of each row
-            for i in tablerows:
-                i = CommonUtils.getBS4Elements(i.get_attribute('innerHTML'))
-                '''
-                index [0] : Club icon
-                index [1] : Club region name
-                '''
-                try:
-                    for j in i.findAll('td'):
-                        infolist = j.findAll('a')
-                        clubname = infolist[1].text
-                        stadiumName = infolist[2].text
-                        clubname = list(filter(lambda x:x.startswith(clubname), teamlist))[0]
-                        if clubname not in list(stadiums.keys()):
-                            stadiums[clubname] = [stadiumName]
-                        else:
-                            stadiums[clubname].append(stadiumName)
-                # Index Error occurence if table is empty example of kleague2
-                except IndexError:
-                    pass
-            self.closeDriver()
-            # prevent hCaptcha
-            self.loadDriver()
-        self.closeDriver()
-        # Stadium list from wiki has more elements than teams from kleague site
-        # Make stadium database in standard of teams from kleague site
-        for i in teamlist:
-            # Only get region name
-            region = i[:2]
-            find_key = list(filter(lambda x:x.startswith(region),stadiums.keys()))
-            if not find_key:
-                capsule['클럽'].append(i)
-                capsule['경기장'].append("Stadium Unknown")
-                continue
-            capsule['클럽'].append(i)
-            capsule['경기장'].append(stadiums[find_key[0]][0])
-            del stadiums[find_key[0]][0]
-        return capsule
-
     @ParameterValidator(isTypeMethod=True)
     def getTeamInformation(self):
         self.loadDriver()
@@ -186,12 +124,11 @@ class Scraper(object):
                     teams[k].append(v)
         self.closeDriver()
         '''
-        /////////////////////////////////////////
-        Build Database : team stadium information
-        /////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////
+        Build Database : team stadium information -> Deprecated, not supported
+        //////////////////////////////////////////////////////////////////////
         '''
-        stadiums = self.__getTeamStadiumInformation(teams['클럽'])
-        return [teams,stadiums]
+        return teams
 
     @ParameterValidator(int,isTypeMethod=True)
     def getPlayerInformation(self,pagination_count=None):
